@@ -4,7 +4,6 @@ import atendimento_api.dto.ConsultaDTO;
 import atendimento_api.service.ConsultaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,34 +17,31 @@ public class ConsultaController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void criarConsulta(@RequestBody ConsultaDTO dto) {
+    public void criarConsulta(@RequestBody ConsultaDTO consultaDTO) {
 
-        consultaService.salvar(dto);
+        consultaService.salvar(consultaDTO);
     }
 
     @GetMapping
     public List<ConsultaDTO> buscarConsulta(
-            @RequestParam(required = true) String cpf,
+            @RequestParam(required = false) String cpf,
             @RequestParam(required = false) String dataConsulta
     ) {
         return consultaService.buscar(cpf, dataConsulta);
     }
 
     @PatchMapping
-    public void atualizarConsulta(
-            @RequestParam(required = true) String cpf,
-            @RequestParam(required = true) String dataConsulta,
-            @RequestParam(required = false) String especialidade,
-            @RequestParam(required = false) String status
-    ) {
-        consultaService.atualizar(cpf, dataConsulta, especialidade, status);
+    public void atualizarConsulta(@RequestBody ConsultaDTO consultaDTO) {
+        consultaService.atualizar(consultaDTO);
     }
 
     @DeleteMapping
-    public  void deletarConsulta(
-            @RequestParam(required = true) String cpf,
-            @RequestParam(required = true) String dataConsulta
-    ) {
-        consultaService.deletar(cpf, dataConsulta);
+    public  ConsultaDTO deletarConsulta(@RequestBody ConsultaDTO consultaDTO) {
+        return consultaService.deletar(consultaDTO);
+
+    }
+    @PatchMapping("alterar-data")
+    public void alterarData(@RequestBody ConsultaDTO consultaDTO) {
+        consultaService.atualizarData(consultaDTO);
     }
 }

@@ -2,6 +2,7 @@ package atendimento_api.repository;
 
 import atendimento_api.dto.ConsultaDTO;
 import atendimento_api.model.Consulta;
+import atendimento_api.model.StatusConsulta;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -34,7 +35,7 @@ public class ConsultaRepository {
         item.put("medico", AttributeValue.fromS(consulta.getMedico()));
         item.put("especialidade", AttributeValue.fromS(consulta.getEspecialidade()));
 
-        item.put("status", AttributeValue.fromS(consulta.getStatus()));
+        item.put("status", AttributeValue.fromS(consulta.getStatus().name()));
 
         PutItemRequest request = PutItemRequest.builder()
                 .tableName(table_name)
@@ -106,14 +107,14 @@ public class ConsultaRepository {
                 .key(item)
                 .updateExpression(expression)
                 .expressionAttributeValues(valores)
-                .expressionAttributeNames(nomes)
+                .expressionAttributeNames(nomes.isEmpty() ? null : nomes)
                 .build();
 
         dynamoDbClient.updateItem(request);
     }
 
 
-    public void deletar(String cpf, String dataConsulta) {
+    public Consulta deletar(String cpf, String dataConsulta) {
         Map<String, AttributeValue> item = new HashMap<>();
         item.put("PK", AttributeValue.fromS("PACIENTE#" + cpf));
         item.put("SK", AttributeValue.fromS("CONSULTA#" + dataConsulta));
@@ -121,13 +122,49 @@ public class ConsultaRepository {
         DeleteItemRequest request = DeleteItemRequest.builder()
                 .tableName(table_name)
                 .key(item)
+                .returnValues(ReturnValue.ALL_OLD)
                 .build();
 
-        dynamoDbClient.deleteItem(request);
+        DeleteItemResponse itemdeletado = dynamoDbClient.deleteItem(request);
+        Map<String, AttributeValue> atributos = itemdeletado.attributes();
+        return maptoConsulta(atributos);
+
 
     }
 
-    public void trocarData(String cpf, String dataAntiga,  String dataNova) {
+    public void atualizarData(String cpf, String dataAntiga,  String dataatualizada) {
+        Map<String, AttributeValue> keyantiga = new HashMap<>();
+        keyantiga.put("PK", AttributeValue.fromS("PACIENTE#" + cpf));
+        keyantiga.put("SK", AttributeValue.fromS("CONSULTA#" + dataAntiga));
+
+        GetItemRequest getItemRequest = GetItemRequest.builder()
+                .tableName(table_name)
+                .key(keyantiga)
+                .build();
+
+        Map<String, AttributeValue> itemAntigo = dynamoDbClient.getItem(getItemRequest).item();
+
+        if (itemAntigo == null || itemAntigo.isEmpty()) {
+            return; //add exception
+        }
+
+        Map<String, AttributeValue> novoItem = new HashMap<>(itemAntigo);
+        novoItem.put("SK", AttributeValue.fromS("CONSULTA#" + dataatualizada));
+
+
+        PutItemRequest putItemRequest = PutItemRequest.builder()
+                .tableName(table_name)
+                .item(novoItem)
+                .build();
+
+        dynamoDbClient.putItem(putItemRequest);
+
+        DeleteItemRequest deleteItemRequest = DeleteItemRequest.builder()
+                .tableName(table_name)
+                .key(keyantiga)
+                .build();
+
+        dynamoDbClient.deleteItem(deleteItemRequest);
 
     }
 
@@ -140,11 +177,10 @@ public class ConsultaRepository {
          consulta.setEspecialidade(item.get("especialidade").s());
          consulta.setSk(item.get("SK").s());
          consulta.setMedico(item.get("medico").s());
-         consulta.setStatus(item.get("status").s());
+        String status = item.get("status").s();
+        StatusConsulta statusConsulta = StatusConsulta.valueOf(status);
+         consulta.setStatus(statusConsulta);
          return consulta;
     }
-
-
-
 
 }
