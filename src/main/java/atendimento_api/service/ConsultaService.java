@@ -2,12 +2,10 @@ package atendimento_api.service;
 
 import atendimento_api.dto.ConsultaDTO;
 import atendimento_api.model.Consulta;
+import atendimento_api.model.StatusConsulta;
 import atendimento_api.repository.ConsultaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,7 +31,7 @@ public class ConsultaService {
 
         consulta.setEspecialidade(consultaDTO.getEspecialidade());
 
-        consulta.setStatus("AGUARDANDO");
+        consulta.setStatus(StatusConsulta.AGUARDANDO);
 
         consultaRepository.salvar(consulta);
     }
@@ -46,13 +44,28 @@ public class ConsultaService {
                 .collect(Collectors.toList());
     }
 
-    public void atualizar(String cpf, String dataConsulta, String especialidade, String status) {
-        consultaRepository.atualizar(cpf, dataConsulta, especialidade, status);
+    public void atualizar(ConsultaDTO consultaDTO) {
+        String status = null;
+        if (consultaDTO.getStatus() != null) {
+            status = consultaDTO.getStatus().name();
+        }
+        consultaRepository.atualizar(consultaDTO.getCpf(), consultaDTO.getDataConsulta(), consultaDTO.getEspecialidade(), status);
     }
 
 
-    public void deletar(String cpf, String dataConsulta) {
-        consultaRepository.deletar(cpf, dataConsulta);
+    public ConsultaDTO deletar(ConsultaDTO consultaDTO) {
+        Consulta consultaDeletada = consultaRepository.deletar(consultaDTO.getCpf(), consultaDTO.getDataConsulta());
+
+        if (consultaDeletada == null) {
+            return null;
+            //add exception
+        }
+
+        return converterDTO(consultaDeletada);
+    }
+
+    public void atualizarData(ConsultaDTO consultaDTO) {
+        consultaRepository.atualizarData(consultaDTO.getCpf(), consultaDTO.getDataConsulta(), consultaDTO.getDataConsultaatualizada());
     }
 
     private ConsultaDTO converterDTO(Consulta consulta) {
@@ -69,7 +82,8 @@ public class ConsultaService {
 
         consultaDTO.setEspecialidade(consulta.getEspecialidade());
         consultaDTO.setMedico(consulta.getMedico());
-
+        consultaDTO.setStatus(consulta.getStatus());
         return  consultaDTO;
     }
+
 }

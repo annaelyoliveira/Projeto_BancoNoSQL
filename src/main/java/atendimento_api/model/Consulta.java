@@ -10,9 +10,7 @@ public class Consulta {
 
     private String nome;
     private String telefone;
-
     private String medico;
     private String especialidade;
-
-    private String status;
+    private StatusConsulta status;
 }
